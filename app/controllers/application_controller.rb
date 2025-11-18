@@ -1,9 +1,17 @@
 class ApplicationController < ActionController::Base
   helper_method :current_user
+  before_action :set_current_user
 
   allow_browser versions: :modern
 
-  # Changes to the importmap will invalidate the etag for HTML responses
+  private
+
+  def set_current_user
+    if session[:user_id]
+      @user = User.find_by(id: session[:user_id])
+    end
+  end
+
   stale_when_importmap_changes
 
   def current_user
