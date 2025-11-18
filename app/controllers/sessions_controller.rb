@@ -5,9 +5,9 @@ class SessionsController < ApplicationController
   def create
     user = User.find_by(email: params[:email])
 
-    if user&.autheticate(params[:password])
+    if user&.authenticate(params[:password])
       session[:user_id] = user.id
-      redirect_to root_path, notice: "Login realizado com sucesso"
+      redirect_to dashboard_index_path, notice: "Login realizado com sucesso"
     else
       flash.now[:alert] = "Email ou senha incorretos"
       render :new, status: :unprocessable_entity
@@ -15,7 +15,7 @@ class SessionsController < ApplicationController
   end
 
   def destroy
-    session.clear
-    redirect_to root_path, notice: "Você saiu da conta"
+    session[:user_id] = nil
+    redirect_to login_path, notice: "Você saiu da conta"
   end
 end
