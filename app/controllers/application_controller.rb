@@ -18,4 +18,10 @@ class ApplicationController < ActionController::Base
     return unless session[:user_id]
     @current_user ||= User.find_by(id: session[:user_id])
   end
+
+  def require_login
+    unless current_user
+      redirect_to login_path, alert: "Você precisa fazer o login"
+    end
+  end
 end

@@ -3,7 +3,8 @@ class DashboardController < ApplicationController
   before_action :require_login
 
   def index
-    @user = current_user
+    @user = User.find(session[:user_id])
+    @cards = current_user.cards
   end
 
   private

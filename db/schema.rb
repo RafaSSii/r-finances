@@ -10,15 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_18_022136) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_19_194745) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "cards", force: :cascade do |t|
+    t.string "color"
+    t.datetime "created_at", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.decimal "value"
+    t.index ["user_id"], name: "index_cards_on_user_id"
+  end
 
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
+    t.decimal "gastos"
+    t.decimal "meta"
     t.string "name"
     t.string "password_digest"
+    t.decimal "renda"
     t.datetime "updated_at", null: false
   end
+
+  add_foreign_key "cards", "users"
 end
