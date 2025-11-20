@@ -1,7 +1,6 @@
 Rails.application.routes.draw do
   get "dashboard/index"
   get "users/new"
-  get "sessions/new"
   get "home/index"
 
   get "/login", to: "home#index", as: :login
