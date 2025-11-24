@@ -14,6 +14,45 @@
   <!-- LISTA DE CARDS -->
   <div id="cards-container" 
        class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <% current_user.cards.order(:position).each do |card| %>
+      <div id="card-<%= card.id %>" 
+           class="p-4 rounded-xl text-white shadow-lg flex flex-col justify-between transition-transform duration-200 hover:scale-[1.02]" 
+           style="background:<%= card.color.presence || '#4f46e5' %>"
+           data-title="<%= j card.title %>"
+           data-value="<%= card.value %>"
+           data-color="<%= card.color %>"
+      >
+        <div class="flex justify-between items-start">
+          <h2 class="text-lg font-bold"><%= card.title %></h2>
+
+          <div class="flex items-center gap-2">
+            <button 
+              onclick="toggleValue(<%= card.id %>)"
+              id="eye-<%= card.id %>"
+              class="text-xl"
+            >
+              👁️
+            </button>
+
+            <button
+              onclick="openEditCard(<%= card.id %>)"
+              class="px-2 py-1 bg-white/25 rounded text-sm"
+            >
+              Editar
+            </button>
+          </div>
+        </div>
+
+        <p 
+          id="value-<%= card.id %>"
+          data-hidden="false"
+          data-real-value="<%= card.value %>"
+          class="text-xl font-semibold mt-2"
+        >
+          R$ <%= card.value %>
+        </p>
+      </div>
+    <% end %>
   </div>
 
   <!-- FORM POPUP -->
@@ -23,7 +62,7 @@
   >
     <div class="bg-white p-6 rounded-xl w-96 space-y-4 shadow-xl">
 
-      <h2 class="text-xl font-bold">Novo Card</h2>
+      <h2 id="card-form-title" class="text-xl font-bold">Novo Card</h2>
 
       <input id="card-title"
         type="text"
@@ -45,6 +84,8 @@
         value="#4f46e5"
       >
 
+      <input type="hidden" id="editing-card-id" value="">
+
       <div class="flex justify-end gap-2 mt-4">
         <button 
           onclick="closeCardForm()"
@@ -59,7 +100,6 @@
         >
           Salvar
         </button>
-      
 
       </div>
 
@@ -71,12 +111,16 @@
 <script>
   function openCardForm() {
     document.getElementById("card-form").classList.remove("hidden");
+    document.getElementById('card-form-title').innerText = 'Novo Card';
+    document.getElementById('editing-card-id').value = '';
   }
 
   function closeCardForm() {
     document.getElementById("card-form").classList.add("hidden");
     document.getElementById("card-title").value = "";
     document.getElementById("card-value").value = "";
+    document.getElementById('card-color').value = '#4f46e5';
+    document.getElementById('editing-card-id').value = '';
   }
 
   function toggleValue(id) {
@@ -98,46 +142,105 @@
     const title = document.getElementById("card-title").value;
     const value = document.getElementById("card-value").value;
     const color = document.getElementById("card-color").value;
+    const editingId = document.getElementById('editing-card-id').value;
 
     if (!title || !value) {
       alert("Preencha título e valor!");
       return;
     }
+    // Monta payload no formato esperado pelo controller
+    const payload = { card: { title: title, value: value, color: color } };
 
-    const container = document.getElementById("cards-container");
+    if (editingId) {
+      // Atualizar card existente
+      fetch(`/cards/${editingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+        body: JSON.stringify(payload)
+      }).then(r => r.json()).then(data => {
+        if (data.errors) {
+          alert(data.errors.join('\n'))
+          return;
+        }
 
-    const id = Date.now(); // id único
+        updateCardDOM(data);
+        closeCardForm();
+      }).catch(e => alert('Erro ao atualizar card'));
+    } else {
+      // Criar novo card
+      fetch('/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+        body: JSON.stringify(payload)
+      }).then(r => r.json()).then(data => {
+        if (data.errors) {
+          alert(data.errors.join('\n'))
+          return;
+        }
 
-    const cardHTML = `
-      <div 
-        class="p-4 rounded-xl text-white shadow-lg flex flex-col justify-between 
-               transition-transform duration-200 hover:scale-[1.02]"
-        style="background:${color}"
-      >
+        appendCardDOM(data);
+        closeCardForm();
+      }).catch(e => alert('Erro ao criar card'));
+    }
+  }
+
+  function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.content : '';
+  }
+
+  function appendCardDOM(card) {
+    const container = document.getElementById('cards-container');
+    const id = card.id;
+    const html = `
+      <div id="card-${id}" class="p-4 rounded-xl text-white shadow-lg flex flex-col justify-between transition-transform duration-200 hover:scale-[1.02]" style="background:${card.color || '#4f46e5'}" data-title="${escapeHtml(card.title)}" data-value="${card.value}" data-color="${card.color}">
         <div class="flex justify-between items-start">
-          <h2 class="text-lg font-bold">${title}</h2>
-          <button 
-            onclick="toggleValue(${id})"
-            id="eye-${id}"
-            class="text-xl"
-          >
-            👁️
-          </button>
+          <h2 class="text-lg font-bold">${escapeHtml(card.title)}</h2>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleValue(${id})" id="eye-${id}" class="text-xl">👁️</button>
+            <button onclick="openEditCard(${id})" class="px-2 py-1 bg-white/25 rounded text-sm">Editar</button>
+          </div>
         </div>
-
-        <p 
-          id="value-${id}"
-          data-hidden="false"
-          data-real-value="${value}"
-          class="text-xl font-semibold mt-2"
-        >
-          R$ ${value}
-        </p>
+        <p id="value-${id}" data-hidden="false" data-real-value="${card.value}" class="text-xl font-semibold mt-2">R$ ${card.value}</p>
       </div>
     `;
+    container.insertAdjacentHTML('beforeend', html);
+  }
 
-    container.insertAdjacentHTML("beforeend", cardHTML);
+  function updateCardDOM(card) {
+    const container = document.getElementById(`card-${card.id}`);
+    if (!container) return;
+    container.style.background = card.color || '#4f46e5';
+    container.querySelector('h2').innerText = card.title;
+    const valueEl = container.querySelector(`#value-${card.id}`);
+    if (valueEl) {
+      valueEl.dataset.realValue = card.value;
+      valueEl.innerText = `R$ ${card.value}`;
+      valueEl.dataset.hidden = 'false';
+    }
+    container.dataset.title = card.title;
+    container.dataset.value = card.value;
+    container.dataset.color = card.color;
+  }
 
-    closeCardForm();
+  function escapeHtml(unsafe) {
+    return String(unsafe).replace(/[&"'<>]/g, function (m) {
+      return {'&':'&amp;','"':'&quot;','\'':'&#39;','<':'&lt;','>':'&gt;'}[m];
+    });
+  }
+
+  function openEditCard(id) {
+    const cardEl = document.getElementById(`card-${id}`);
+    if (!cardEl) return;
+    const title = cardEl.dataset.title;
+    const value = cardEl.dataset.value;
+    const color = cardEl.dataset.color || '#4f46e5';
+
+    document.getElementById('card-title').value = title;
+    document.getElementById('card-value').value = value;
+    document.getElementById('card-color').value = color;
+    document.getElementById('editing-card-id').value = id;
+    document.getElementById('card-form-title').innerText = 'Editar Card';
+    document.getElementById('card-form').classList.remove('hidden');
   }
 </script>
