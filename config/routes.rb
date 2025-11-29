@@ -24,5 +24,5 @@ Rails.application.routes.draw do
   resources :users, only: [ :new, :create ]
   resources :sessions, only: [ :new, :create, :destroy ]
   resources :dashboard, only: [ :index ]
-  resources :cards, only: [ :create, :edit, :update, :destroy ]
+  resources :cards, only: [ :index, :create, :edit, :update, :destroy ]
 end
