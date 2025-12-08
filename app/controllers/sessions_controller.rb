@@ -8,7 +8,6 @@ class SessionsController < ApplicationController
       redirect_to dashboard_path, notice: "Login realizado com sucesso"
     else
       flash.now[:alert] = "Email ou senha incorretos"
-      render :new, status: :unprocessable_entity
     end
   end
 

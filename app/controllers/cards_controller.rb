@@ -24,9 +24,13 @@ class CardsController < ApplicationController
   end
 
   def destroy
-    @card.destroy
-    render json: { success: true }
+    if @card.destroy
+      render json: { success: true }, status: :ok
+    else
+      render json: { errors: [ "Erro ao apagar o card" ] }, status: :unprocessable_entity
+    end
   end
+
 
   private
 

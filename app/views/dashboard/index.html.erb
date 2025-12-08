@@ -2,7 +2,6 @@
 
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold">Dashboard</h1>
-
     <button onclick="openCardForm()"class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">Novo Card</button>
   </div>
 
@@ -21,20 +20,37 @@
           <h2 class="text-lg font-bold"><%= card.title %></h2>
 
           <div class="flex items-center gap-2">
-            <button 
-              onclick="toggleValue(<%= card.id %>)"
+
+            <!-- ÍCONE DE OLHO -->
+            <button onclick="toggleValue(<%= card.id %>)"
               id="eye-<%= card.id %>"
               class="text-xl"
             >
               👁️
             </button>
 
+            <!-- BOTÃO EDITAR -->
             <button
               onclick="openEditCard(<%= card.id %>)"
               class="px-2 py-1 bg-white/25 rounded text-sm"
             >
               Editar
             </button>
+
+            <!-- LIXEIRA HEROICON -->
+            <button onclick="deleteCard(<%= card.id %>)"
+              class="text-red-200 hover:text-red-400 transition">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke-width="1.5"
+                   stroke="currentColor"
+                   class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6 7h12m-9 4v6m6-6v6M9 3h6l1 3H8l1-3z" />
+              </svg>
+            </button>
+
           </div>
         </div>
 
@@ -143,11 +159,10 @@
       alert("Preencha título e valor!");
       return;
     }
-    // Monta payload no formato esperado pelo controller
+
     const payload = { card: { title: title, value: value, color: color } };
 
     if (editingId) {
-      // Atualizar card existente
       fetch(`/cards/${editingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
@@ -162,7 +177,6 @@
         closeCardForm();
       }).catch(e => alert('Erro ao atualizar card'));
     } else {
-      // Criar novo card
       fetch('/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
@@ -184,6 +198,28 @@
     return meta ? meta.content : '';
   }
 
+  // 🗑️ FUNÇÃO PARA APAGAR CARD
+  function deleteCard(id) {
+    if (!confirm("Tem certeza que deseja apagar este card?")) return;
+
+    fetch(`/cards/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-Token': getCsrfToken(),
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(r => {
+      if (r.ok) {
+        const el = document.getElementById(`card-${id}`);
+        if (el) el.remove();
+      } else {
+        alert("Erro ao apagar o card.");
+      }
+    })
+    .catch(() => alert("Erro ao apagar o card."));
+  }
+
   function appendCardDOM(card) {
     const container = document.getElementById('cards-container');
     const id = card.id;
@@ -194,6 +230,20 @@
           <div class="flex items-center gap-2">
             <button onclick="toggleValue(${id})" id="eye-${id}" class="text-xl">👁️</button>
             <button onclick="openEditCard(${id})" class="px-2 py-1 bg-white/25 rounded text-sm">Editar</button>
+
+            <!-- LIXEIRA HEROICON -->
+            <button onclick="deleteCard(${id})" class="text-red-200 hover:text-red-400 transition">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke-width="1.5"
+                   stroke="currentColor"
+                   class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6 7h12m-9 4v6m6-6v6M9 3h6l1 3H8l1-3z" />
+              </svg>
+            </button>
+
           </div>
         </div>
         <p id="value-${id}" data-hidden="false" data-real-value="${card.value}" class="text-xl font-semibold mt-2">R$ ${card.value}</p>
