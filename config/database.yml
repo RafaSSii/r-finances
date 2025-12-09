@@ -15,5 +15,8 @@ test:
 
 production:
   <<: *default
-  # Render uses DATABASE_URL for everything.
   url: <%= ENV["DATABASE_URL"] %>
+
+  cable:
+    adapter: postgresql
+    url: <%= ENV["DATABASE_URL"] %>
